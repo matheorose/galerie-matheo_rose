@@ -1,0 +1,32 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import LightCurtain from "../components/LightCurtain.astro";
+import ArrowNav from "../components/ArrowNav.astro";
+import ProjectRoom from "../components/ProjectRoom.astro";
+import { projects, type Project } from "../data/projects";
+
+type Props = {
+  project: Project;
+  initialIndex: number;
+};
+
+export function getStaticPaths() {
+  return projects.map((project, index) => ({
+    params: { slug: project.slug },
+    props: {
+      project,
+      initialIndex: index,
+    }
+  }));
+}
+
+const { project, initialIndex } = Astro.props as Props;
+---
+<BaseLayout title={`${project.title} — Mathéo ROSE`}>
+  <LightCurtain />
+  <main class="relative flex h-screen w-screen items-center justify-center px-[6vw] py-[6vh]">
+    <ProjectRoom project={project} projects={projects} initialIndex={initialIndex} />
+  </main>
+
+  <ArrowNav mode="carousel" />
+</BaseLayout>

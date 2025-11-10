@@ -1,0 +1,359 @@
+---
+import type { Project, FrameName } from "../data/projects";
+import frameImage from "../assets/cadre.png";
+import frameImage2 from "../assets/cadre2.png";
+import frameImage3 from "../assets/cadre3.png";
+
+type Props = {
+  project: Project;
+  projects?: Project[];
+  initialIndex?: number;
+};
+
+const { project, projects: projectList = [project], initialIndex = 0 } = Astro.props as Props;
+const safeProjects = projectList.length ? projectList : [project];
+const normalizedIndex = Math.min(Math.max(initialIndex, 0), safeProjects.length - 1);
+const currentProject = safeProjects[normalizedIndex] ?? project;
+const dialogId = "project-dialog";
+const projectsJson = JSON.stringify(safeProjects).replace(/</g, "\\u003c");
+const frameSources = {
+  cadre: frameImage.src,
+  cadre2: frameImage2.src,
+  cadre3: frameImage3.src,
+} as const;
+
+const resolveFrameSrc = (cadre?: FrameName) =>
+  (cadre ? frameSources[cadre] : undefined) ?? frameSources.cadre;
+
+const frameSourcesJson = JSON.stringify(frameSources).replace(/</g, "\\u003c");
+const initialFrameSrc = resolveFrameSrc(currentProject.cadre);
+---
+
+<div
+  class="mx-auto max-w-[1200px] text-center"
+  data-carousel-root
+  data-initial-index={normalizedIndex}
+  data-projects={projectsJson}
+  data-dialog-id={dialogId}
+  data-frame-sources={frameSourcesJson}
+>
+  <header
+    class="absolute left-1/2 top-[6vh] -translate-x-1/2 text-center tracking-[0.06em]"
+  >
+    <div
+      class="font-['Space_Grotesk',_Inter,_sans-serif] text-[clamp(22px,3.8vw,44px)] font-semibold"
+      data-carousel-title
+    >
+      {currentProject.title} — {currentProject.year}
+    </div>
+  </header>
+
+  <div class="mt-24 flex flex-col items-center gap-8">
+    <div class="relative mx-auto flex w-[min(640px,82vw)] justify-center">
+      <div
+        class="relative w-full aspect-[32/21] overflow-hidden rounded-[16px] border border-black/10 bg-[#fafafa]"
+        data-carousel-media
+      >
+        <img
+          class="absolute inset-0 h-full w-full object-cover"
+          src={currentProject.cover}
+          alt={currentProject.title}
+          loading="lazy"
+          data-carousel-cover
+        />
+      </div>
+      <img
+        src={initialFrameSrc}
+        alt="Cadre décoratif"
+        loading="lazy"
+        class="pointer-events-none absolute left-1/2 top-1/2 h-[250%] w-[115%] max-h-none max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+        data-carousel-frame
+      />
+    </div>
+
+    <div
+      class="mt-[2.2rem] text-center text-[clamp(12px,1.1vw,14px)] text-[#5A5A5A]"
+      data-carousel-meta
+    >
+      <div class="text-[0.85rem] uppercase tracking-[0.25em]" data-carousel-role>
+        Rôle : {currentProject.role}
+      </div>
+      <p class="mt-3 text-[clamp(14px,1.5vw,18px)] text-[#111]" data-carousel-tagline>
+        {currentProject.tagline}
+      </p>
+      <button
+        class="mt-[18px] inline-flex cursor-pointer items-center gap-2 rounded-full border border-black/10 px-6 py-3 text-[clamp(14px,1.5vw,18px)] text-[#111] opacity-100 backdrop-blur-md transition hover:opacity-60"
+        type="button"
+        data-dialog-trigger={dialogId}
+      >
+        Voir plus
+        <svg class="size-3 md:size-3" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M12.2929 4.29289C12.6834 3.90237 13.3166 3.90237 13.7071 4.29289L20.7071 11.2929C21.0976 11.6834 21.0976 12.3166 20.7071 12.7071L13.7071 19.7071C13.3166 20.0976 12.6834 20.0976 12.2929 19.7071C11.9024 19.3166 11.9024 18.6834 12.2929 18.2929L17.5858 13H4C3.44772 13 3 12.5523 3 12C3 11.4477 3.44772 11 4 11H17.5858L12.2929 5.70711C11.9024 5.31658 11.9024 4.68342 12.2929 4.29289Z" fill="#000000" />
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<dialog
+  id={dialogId}
+  class="w-full max-w-[min(760px,90vw)] rounded-2xl border-0 p-7 shadow-[0_10px_50px_rgba(0,0,0,0.12)]"
+>
+  <div class="mb-[10px] font-semibold" data-dialog-title>
+    {currentProject.title} — {currentProject.year}
+  </div>
+  <div class="text-sm text-[#5A5A5A]" data-dialog-role>Rôle : {currentProject.role}</div>
+  <p class="mt-3 text-base text-[#111]" data-dialog-description>{currentProject.tagline}</p>
+  <p
+    class="mt-2 text-base"
+    data-dialog-link-wrapper
+    hidden={!currentProject.href}
+  >
+    <a
+      class="underline"
+      href={currentProject.href ?? "#"}
+      target="_blank"
+      rel="noreferrer"
+      data-dialog-link
+    >
+      Voir le site
+    </a>
+  </p>
+  <button
+    class="mt-4 inline-flex items-center justify-center rounded-full border border-black/10 px-4 py-2 text-sm"
+    type="button"
+    data-dialog-close
+  >
+    Fermer
+  </button>
+</dialog>
+
+<script is:inline>
+  (() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+
+    const root = document.querySelector('[data-carousel-root]');
+    if (!root) return;
+
+    const projectsAttr = root.getAttribute('data-projects');
+    if (!projectsAttr) return;
+
+    let projects;
+    try {
+      projects = JSON.parse(projectsAttr);
+    } catch {
+      return;
+    }
+
+    if (!Array.isArray(projects) || projects.length === 0) return;
+
+    const frameSourcesAttr = root.getAttribute('data-frame-sources');
+    let frameSources = {};
+    if (frameSourcesAttr) {
+      try {
+        const parsedSources = JSON.parse(frameSourcesAttr);
+        if (parsedSources && typeof parsedSources === 'object') {
+          frameSources = parsedSources;
+        }
+      } catch {
+        /* noop */
+      }
+    }
+
+    const total = projects.length;
+    const clampIndex = (value) => {
+      const mod = value % total;
+      return mod >= 0 ? mod : total + mod;
+    };
+
+    let index = Number(root.getAttribute('data-initial-index')) || 0;
+    index = clampIndex(index);
+
+    const mediaEl = root.querySelector('[data-carousel-media]');
+    const metaEl = root.querySelector('[data-carousel-meta]');
+    const frameEl = root.querySelector('[data-carousel-frame]');
+    const coverEl = root.querySelector('[data-carousel-cover]');
+    const titleEl = root.querySelector('[data-carousel-title]');
+    const roleEl = root.querySelector('[data-carousel-role]');
+    const taglineEl = root.querySelector('[data-carousel-tagline]');
+    const viewMoreBtn = root.querySelector('[data-dialog-trigger]');
+    const dialogId = root.getAttribute('data-dialog-id');
+    const dialogEl = dialogId ? document.getElementById(dialogId) : null;
+    const dialogTitle = dialogEl?.querySelector('[data-dialog-title]');
+    const dialogRole = dialogEl?.querySelector('[data-dialog-role]');
+    const dialogDescription = dialogEl?.querySelector('[data-dialog-description]');
+    const dialogLinkWrapper = dialogEl?.querySelector('[data-dialog-link-wrapper]');
+    const dialogLink = dialogEl?.querySelector('[data-dialog-link]');
+
+    if (!frameSources.cadre && frameEl instanceof HTMLImageElement) {
+      frameSources.cadre = frameEl.getAttribute('src') || frameEl.src || '';
+    }
+
+    const animatedElements = [mediaEl, metaEl, frameEl].filter((el) => el instanceof HTMLElement);
+    const TRANSITION = 450;
+    let isAnimating = false;
+
+    const syncUrl = (project) => {
+      if (!project?.slug || typeof window === 'undefined' || !window.history?.replaceState) return;
+      const ensureSlash = (path) => (path.endsWith('/') ? path : `${path}/`);
+      const currentPath = ensureSlash(window.location.pathname);
+      const desiredPath = ensureSlash(`/${project.slug}`);
+      if (currentPath !== desiredPath) {
+        try {
+          window.history.replaceState({}, '', desiredPath);
+        } catch {
+          /* noop */
+        }
+      }
+    };
+
+    const resolveFrameSrc = (cadre) => {
+      if (cadre && typeof cadre === 'string' && frameSources[cadre]) {
+        return frameSources[cadre];
+      }
+      return frameSources.cadre;
+    };
+
+    const renderProject = () => {
+      const project = projects[index];
+      if (!project) return;
+      if (coverEl) {
+        coverEl.src = project.cover;
+        coverEl.alt = project.title;
+      }
+      const nextFrameSrc = resolveFrameSrc(project.cadre);
+      if (frameEl instanceof HTMLImageElement && nextFrameSrc) {
+        frameEl.src = nextFrameSrc;
+      }
+      if (titleEl) titleEl.textContent = `${project.title} — ${project.year}`;
+      if (roleEl) roleEl.textContent = `Rôle : ${project.role}`;
+      if (taglineEl) taglineEl.textContent = project.tagline ?? '';
+      if (dialogTitle) dialogTitle.textContent = `${project.title} — ${project.year}`;
+      if (dialogRole) dialogRole.textContent = `Rôle : ${project.role}`;
+      if (dialogDescription) dialogDescription.textContent = project.tagline ?? '';
+      if (dialogLinkWrapper && dialogLink) {
+        if (project.href) {
+          dialogLinkWrapper.hidden = false;
+          dialogLink.href = project.href;
+        } else {
+          dialogLinkWrapper.hidden = true;
+        }
+      }
+      syncUrl(project);
+    };
+
+    const animateTo = (direction) => {
+      if (total <= 1) return;
+      if (isAnimating) return;
+      isAnimating = true;
+
+      const outClass = direction === 'next' ? 'carousel-anim-out-left' : 'carousel-anim-out-right';
+      const inClass = direction === 'next' ? 'carousel-anim-in-right' : 'carousel-anim-in-left';
+
+      animatedElements.forEach((el) => {
+        el.classList.remove('carousel-anim-in-left', 'carousel-anim-in-right', 'carousel-anim-out-left', 'carousel-anim-out-right');
+        void el.offsetWidth;
+        el.classList.add(outClass);
+      });
+
+      setTimeout(() => {
+        animatedElements.forEach((el) => el.classList.remove(outClass));
+        index = clampIndex(direction === 'next' ? index + 1 : index - 1);
+        renderProject();
+        animatedElements.forEach((el) => {
+          void el.offsetWidth;
+          el.classList.add(inClass);
+        });
+        setTimeout(() => {
+          animatedElements.forEach((el) => el.classList.remove(inClass));
+          isAnimating = false;
+        }, TRANSITION);
+      }, TRANSITION);
+    };
+
+    const setupNavButtons = () => {
+      const navButtons = document.querySelectorAll('[data-carousel-nav]');
+      navButtons.forEach((btn) => {
+        if (total <= 1) {
+          btn.setAttribute('disabled', 'true');
+          btn.classList.add('opacity-30', 'cursor-not-allowed');
+        }
+        btn.addEventListener('click', (event) => {
+          event.preventDefault();
+          if (total <= 1) return;
+          const dir = btn.getAttribute('data-carousel-nav') === 'next' ? 'next' : 'prev';
+          animateTo(dir);
+        });
+      });
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupNavButtons, { once: true });
+    } else {
+      setupNavButtons();
+    }
+
+    if (viewMoreBtn && dialogEl) {
+      viewMoreBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        dialogEl.showModal();
+      });
+      dialogEl.querySelectorAll('[data-dialog-close]').forEach((btn) => {
+        btn.addEventListener('click', () => dialogEl.close());
+      });
+    }
+
+    renderProject();
+  })();
+</script>
+
+<style>
+  #project-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin: 0;
+  }
+
+  [data-carousel-media],
+  [data-carousel-meta] {
+    will-change: transform, opacity;
+  }
+
+  .carousel-anim-out-left {
+    animation: carouselSlideOutLeft 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .carousel-anim-out-right {
+    animation: carouselSlideOutRight 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .carousel-anim-in-left {
+    animation: carouselSlideInLeft 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  .carousel-anim-in-right {
+    animation: carouselSlideInRight 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes carouselSlideOutLeft {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(-25%); opacity: 0; }
+  }
+
+  @keyframes carouselSlideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(25%); opacity: 0; }
+  }
+
+  @keyframes carouselSlideInLeft {
+    from { transform: translateX(-25%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes carouselSlideInRight {
+    from { transform: translateX(25%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+</style>
